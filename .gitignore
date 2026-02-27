@@ -1,2 +1,9 @@
 .env
+node_modules/
 
+app.log
+logs/
+error.log
+
+todo.md
+mainidea.md

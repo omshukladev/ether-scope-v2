@@ -69,14 +69,13 @@ vitest.config.ts
 Write test first:
 
 ```
-
-GET /health
+GET /api/v1/health
 → returns 200
-→ returns { status: "ok" }
-
+→ returns { status: "ok", timestamp: number }
+→ uses apiResponse class
 ```
 
-Then implement route.
+Then implement route using the standardized response pattern.
 
 Deploy using:
 
@@ -196,9 +195,7 @@ Mock Lava response → returns normalized transaction list.
 Create:
 
 ```
-
 services/wallet.service.ts
-
 ```
 
 Test:
@@ -211,10 +208,15 @@ Test:
 Then wire route:
 
 ```
-
 GET /api/v1/wallet/:address
-
 ```
+
+Ensure all responses use:
+
+- Status 200 for success with apiResponse
+- Status 400 for invalid address with apiError
+- Status 429 for rate limit with apiError
+- Status 503 for Lava API failure with apiError
 
 ---
 
@@ -328,6 +330,12 @@ Implement:
 - DELETE /track/:wallet
 
 Enforce:
+
+- Auth required (401 if missing/invalid)
+- 400 for validation errors
+- 404 for non-existent wallet on delete
+
+All responses must use apiResponse/apiError classes.
 
 - Maximum 3 tracked wallets per user
 

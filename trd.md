@@ -1,4 +1,5 @@
 # EtherScope Mobile
+
 ## Technical Requirement Document (TRD)
 
 ---
@@ -8,26 +9,32 @@
 ## 1.1 High-Level Architecture
 
 Mobile App (React Native / Expo)
-        ↓
+↓
 Cloudflare Workers API (Hono + TypeScript)
-        ↓
+↓
 Lava API (Ethereum Blockchain Data)
-        ↓
-Cloudflare D1 (Tracking Metadata)
-        ↓
+↓
+Cloudflare D1 (User + Tracking + Search Metadata)
+↓
 Push Notification Service (Expo Push / Firebase FCM)
+
+Authentication Flow:
+
+Clerk → Webhook → Inngest → Cloudflare Worker → D1
 
 ---
 
 ## 1.2 Architectural Principles
 
-- Stateless backend
-- Edge-native deployment
-- Polling-based tracking (no WebSockets in V1)
-- API normalization layer between Lava and frontend
-- Minimal persistent storage
-- Test-Driven Development (TDD) for backend logic
-- Avoid overengineering
+* Stateless backend
+* Edge-native deployment
+* JWT-based authentication (Clerk)
+* User data mirrored in D1 via webhook sync
+* Polling-based tracking (no WebSockets in V1)
+* API normalization layer between Lava and frontend
+* Minimal but scalable database schema
+* Test-Driven Development (TDD)
+* Avoid overengineering
 
 ---
 
@@ -35,124 +42,197 @@ Push Notification Service (Expo Push / Firebase FCM)
 
 ## 2.1 UI Responsibilities
 
-- Four-tab navigation:
-  - Search
-  - History
-  - Track
-  - Settings
-- Render unified transaction feed
-- Display loading and error states
-- Render empty states
+* Four-tab navigation:
+
+  * Search
+  * History
+  * Track
+  * Settings
+* Render unified transaction feed
+* Display loading, error, and empty states
+* Display Clerk user profile (image, name, logout)
 
 ---
 
 ## 2.2 Client-Side Logic
 
-- Ethereum address validation
-- Debounced search input
-- Store search history locally (max 20 wallets)
-- Persist authentication token
-- Register push notification token
-- Handle foreground/background notifications
+* Ethereum address validation (pre-check)
+* Debounced search input
+* Persist authentication token (Clerk SDK)
+* Register push notification token
+* Handle foreground/background notifications
+* Display DB-backed search history
 
 ---
 
 ## 2.3 API Interaction Rules
 
-- Frontend calls backend only
-- Never call Lava API directly
-- All transaction data must be normalized by backend
+* Frontend calls backend only
+* Never call Lava API directly
+* All blockchain data must be normalized by backend
+* All user-related endpoints require authentication
 
 ---
 
 # 3. Backend Responsibilities (Cloudflare Workers)
 
 Built with:
-- TypeScript
-- Hono
-- Wrangler
-- Vitest
+
+* TypeScript
+* Hono
+* Wrangler
+* Vitest
 
 ---
 
 ## 3.1 Core Backend Modules
 
 ### Wallet Service
-- Fetch ETH transactions
-- Fetch ERC20 transfers
-- Normalize responses
-- Merge and sort
-- Deduplicate transactions
-- Return latest 30 transactions
+
+* Fetch ETH transactions
+* Fetch ERC20 transfers
+* Normalize responses
+* Merge and sort
+* Deduplicate transactions
+* Detect direction (IN / OUT / SELF)
+* Return latest 30 transactions
+
+Future:
+
+* NFT transactions
+* DeFi interactions
+
+---
 
 ### Tracking Service
-- Store tracked wallets
-- Store last checked timestamp
-- Poll Lava API
-- Detect new transactions
-- Trigger notifications
+
+* Store tracked wallets
+* Enforce max 3 wallets per user
+* Store last checked timestamp
+* Poll Lava API via Cron
+* Detect new transactions
+* Insert into notifications_log
+* Trigger push notifications
+
+---
+
+### Search History Service
+
+* Store wallet searches per user
+* Prevent duplicates
+* Keep maximum 20 recent searches
+* Update timestamp on re-search
+
+---
 
 ### Auth Middleware
-- Verify Clerk JWT
-- Attach user context
+
+* Verify Clerk JWT via JWKS
+* Attach userId to request context
+* Ensure user exists in D1 (defensive insert)
+
+---
 
 ### Health Monitoring
-- Provide healthcheck endpoint
+
+* Provide healthcheck endpoint
+* Log system failures
 
 ---
 
 # 4. Database Schema (Cloudflare D1)
 
-Only minimal tracking metadata is stored.
+## 4.1 Users
 
----
-
-## 4.1 users
+Clerk user mirrored via Inngest webhook.
 
 ```sql
-CREATE TABLE users (
-  id TEXT PRIMARY KEY,
-  email TEXT,
-  created_at INTEGER
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,          -- Clerk user ID
+  name TEXT,
+  email TEXT UNIQUE,
+  profile_image TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER
 );
 ```
 
 ---
 
-## 4.2 tracked_wallets
+## 4.2 Wallet Searches
 
 ```sql
-CREATE TABLE tracked_wallets (
+CREATE TABLE IF NOT EXISTS wallet_searches (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   wallet_address TEXT NOT NULL,
-  last_checked_timestamp INTEGER,
-  created_at INTEGER,
+  created_at INTEGER NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 ```
 
 Constraint:
 
-* Maximum 3 tracked wallets per user (enforced in backend logic)
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS user_wallet_unique
+ON wallet_searches(user_id, wallet_address);
+```
+
+Behavior:
+
+* If wallet searched again → update timestamp
+* Keep max 20 per user (delete oldest)
 
 ---
 
-## 4.3 notifications_log (Recommended for V1)
+## 4.3 Tracked Wallets
 
 ```sql
-CREATE TABLE notifications_log (
+CREATE TABLE IF NOT EXISTS tracked_wallets (
   id TEXT PRIMARY KEY,
-  user_id TEXT,
-  wallet_address TEXT,
-  tx_hash TEXT,
-  created_at INTEGER
+  user_id TEXT NOT NULL,
+  wallet_address TEXT NOT NULL,
+  last_checked_timestamp INTEGER,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
 );
+```
+
+Constraint:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS user_tracked_wallet_unique
+ON tracked_wallets(user_id, wallet_address);
+```
+
+Business Rule:
+
+* Maximum 3 tracked wallets per user
+
+---
+
+## 4.4 Notifications Log
+
+```sql
+CREATE TABLE IF NOT EXISTS notifications_log (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  wallet_address TEXT NOT NULL,
+  tx_hash TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+```
+
+Constraint:
+
+```sql
+CREATE UNIQUE INDEX IF NOT EXISTS notification_unique
+ON notifications_log(user_id, tx_hash);
 ```
 
 Purpose:
 
-* Prevent duplicate notifications
+* Prevent duplicate push notifications
 
 ---
 
@@ -166,37 +246,39 @@ Base path:
 
 ---
 
-## 5.1 Wallet Search
+## 5.1 Wallet Search (Authenticated)
 
 ### GET /wallet/:address
 
-Description:
-Returns merged ETH + ERC20 transactions.
+* Requires authentication
+* Stores search history
+* Returns merged transactions
 
-Response:
+Success Response:
 
 ```json
 {
-  "wallet": "0x...",
-  "transactions": [
-    {
-      "txHash": "0x...",
-      "timestamp": 1712341234,
-      "tokenSymbol": "ETH",
-      "tokenType": "ETH",
-      "amount": "0.52",
-      "direction": "OUT",
-      "status": "SUCCESS",
-      "from": "0x...",
-      "to": "0x..."
-    }
-  ]
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "wallet": "0x...",
+    "transactions": []
+  },
+  "message": "Wallet fetched successfully"
 }
 ```
 
 ---
 
-## 5.2 Tracking
+## 5.2 Search History
+
+### GET /history
+
+Returns last 20 searched wallets for authenticated user.
+
+---
+
+## 5.3 Tracking
 
 ### POST /track
 
@@ -208,73 +290,56 @@ Body:
 }
 ```
 
-Auth required.
-
----
-
 ### DELETE /track/:wallet
-
-Auth required.
-
----
 
 ### GET /track
 
-Returns list of tracked wallets for authenticated user.
+All tracking endpoints require authentication.
 
 ---
 
-## 5.3 Healthcheck
+## 5.4 Healthcheck
 
 ### GET /health
 
-Response:
-
-```json
-{
-  "status": "ok",
-  "timestamp": 1712341234
-}
-```
+Public endpoint.
 
 ---
 
-# 6. Authentication Strategy
+# 6. HTTP Status Codes
 
-Authentication provider: Clerk
+| Endpoint              | Success | Validation | Auth | Not Found | Rate Limit | Service Error |
+| --------------------- | ------- | ---------- | ---- | --------- | ---------- | ------------- |
+| GET /health           | 200     | -          | -    | -         | -          | 500           |
+| GET /wallet/:address  | 200     | 400        | 401  | -         | 429        | 503           |
+| POST /track           | 200     | 400        | 401  | -         | -          | 500           |
+| DELETE /track/:wallet | 200     | 400        | 401  | 404       | -          | 500           |
+
+---
+
+# 7. Authentication Strategy
+
+Provider: Clerk
 
 Flow:
 
-1. Mobile authenticates via Clerk SDK
+1. User authenticates via Clerk SDK
 2. Clerk returns JWT
-3. Mobile sends JWT in Authorization header:
-   Authorization: Bearer <token>
-4. Backend verifies JWT using Clerk JWKS
-5. Extract user_id and attach to request context
+3. Frontend sends: Authorization: Bearer <token>
+4. Backend verifies JWT via Clerk JWKS
+5. Extract userId
+6. Ensure user exists in D1
 
-Rules:
+User Sync Flow:
 
-* Search endpoint is public
-* Tracking endpoints require authentication
+Clerk → Webhook → Inngest → Worker → Insert into users table
 
----
+Fallback Safety:
 
-# 7. Third-Party Dependencies
-
-Core:
-
-* Hono
-* Clerk
-* Lava API
-* Cloudflare Workers
-* Cloudflare D1
-* Expo Push or Firebase FCM
-* Vitest
-* Wrangler
-
-Optional future:
-
-* Sentry (error monitoring)
+```
+INSERT INTO users (id, created_at)
+ON CONFLICT DO NOTHING;
+```
 
 ---
 
@@ -284,81 +349,49 @@ Optional future:
 
 * No session storage
 * JWT-based auth
-* Minimal database usage
-
----
 
 ## 8.2 Rate Limiting
 
-* IP-based limit for search endpoint
-* Per-user limit for tracking
-* Maximum 5 searches per 10 seconds
+* IP-based search rate limit
+* Per-user tracking limits
+* 5 searches per 10 seconds
 
----
+## 8.3 Caching
 
-## 8.3 Caching Strategy
-
-* Cache wallet search results for 15–30 seconds
+* Cache wallet results 15–30 seconds
 * Use Cloudflare Cache API
 * Reduce Lava API calls
 
----
+## 8.4 Tracking Strategy
 
-## 8.4 Tracking Strategy (MVP)
-
-* Use Cloudflare Cron Trigger
-* Run every 1–2 minutes
-* Fetch tracked wallets
-* Compare latest transaction timestamp
-* Send push notification if new activity detected
+* Cron Trigger every 1–2 minutes
+* Compare last_checked_timestamp
+* Insert new tx into notifications_log
+* Send push notification
 
 ---
 
 # 9. Testing Strategy (Vitest)
 
-Backend follows Test-Driven Development (TDD).
-
----
-
 ## 9.1 Unit Tests
 
-Test:
-
-* Ethereum address validation
+* Address validation
 * Merge logic
-* Deduplication logic
+* Deduplication
 * Direction detection
-* Failed transaction parsing
 * Tracking comparison logic
-
----
 
 ## 9.2 Integration Tests
 
 * Mock Lava API
-* Simulate ETH and ERC20 responses
-* Verify merged response correctness
+* Verify normalized response
 
----
+## 9.3 Route Tests
 
-## 9.3 API Route Tests
-
-Test endpoints:
-
+* /health
 * /wallet/:address
 * /track
-* /health
-
----
-
-## 9.4 Test Structure
-
-```
-/tests
-  wallet.service.test.ts
-  tracking.service.test.ts
-  api.routes.test.ts
-```
+* /history
 
 ---
 
@@ -366,26 +399,15 @@ Test endpoints:
 
 Using GitHub Actions.
 
----
-
-## 10.1 Pipeline Steps
+Pipeline:
 
 1. Install dependencies
 2. Run linter
 3. Run Vitest
 4. Build project
-5. Build Docker image (optional but recommended)
-6. Deploy via Wrangler
+5. Deploy via Wrangler
 
----
-
-## 10.2 Wrangler Deployment
-
-```
-wrangler deploy
-```
-
-GitHub Action:
+Example:
 
 ```yaml
 - name: Deploy
@@ -399,63 +421,59 @@ GitHub Action:
 # 11. Observability
 
 * Log errors
-* Log tracking runs
-* Log Lava API failures
-* Healthcheck endpoint
-* Cloudflare Analytics
+* Log cron executions
+* Log Lava failures
+* Health endpoint monitoring
 
 Future:
 
-* Add Sentry
+* Sentry integration
 
 ---
 
 # 12. Failure Handling
 
-If Lava API fails:
-
-* Return 503
-* Retry maximum 2 times
-
-If D1 fails:
-
-* Log error
-* Return graceful error
-
-If push notification fails:
-
-* Log error
-* Continue processing
+* Lava failure → 503
+* D1 failure → 500
+* Push failure → log and continue
 
 ---
 
-# 13. Security Considerations
+# 13. Security
 
 * Validate Ethereum address format
-* Sanitize inputs
-* Protect Lava API key (backend only)
-* Enforce authentication on tracking endpoints
-* Configure CORS restrictions
+* Enforce authentication
+* Protect Lava API key
+* Configure CORS
+* Enforce per-user limits
 
 ---
 
 # 14. Performance Targets
 
-* Search API response < 1.5 seconds
-* Tracking poll cycle < 5 seconds per wallet
-* Cold start < 200ms
+* < 1.5s wallet search
+* < 5s tracking cycle per wallet
+* < 200ms cold start
 
 ---
 
 # 15. Long-Term Stability Decisions
 
-We intentionally:
+* No WebSockets (V1)
+* No portfolio tracking (V1)
+* No NFT display (V1)
+* No DeFi analytics (V1)
+* No multi-chain support (V1)
 
-* Avoid WebSockets in V1
-* Avoid storing full transaction history in database
-* Avoid complex analytics
-* Keep polling simple
-* Keep infrastructure minimal
+Focus: Clean, minimal, scalable wallet activity monitoring.
 
-This ensures cost control, simplicity, and scalability.
+```
 
+---
+
+If you'd like next, we can:
+
+- Create a matching **PRD v2**
+- Or generate a **database migration file**
+- Or design the **auth + webhook flow diagram** in detail.
+```

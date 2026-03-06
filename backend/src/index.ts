@@ -3,10 +3,10 @@ import { errorHandler } from "./utils/errorHandler";
 
 // Define your Cloudflare Workers KV namespace bindings here
 type Bindings = {
- DB: D1Database
-  INNGEST_EVENT_KEY: string
-  INNGEST_SIGNING_KEY: string
-  CLERK_WEBHOOK_SECRET: string
+  DB: D1Database;
+  INNGEST_EVENT_KEY: string;
+  INNGEST_SIGNING_KEY: string;
+  CLERK_WEBHOOK_SECRET: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -15,24 +15,20 @@ const app = new Hono<{ Bindings: Bindings }>();
 import { cors } from "hono/cors";
 import { serve } from "inngest/cloudflare";
 import { Inngest } from "inngest";
+import { inngest } from "./inngest/client";
+
 import { functions } from "./inngest/functions";
 import clerkWebhookRoute from "./routes/clerkWebhook.route";
 
-app.all("/api/inngest", (c) => {
-  const inngest = new Inngest({
-    id: "etherscope-worker",
-    eventKey: c.env.INNGEST_EVENT_KEY,
-  });
-
-  const handler = serve({
-    client: inngest,
-    functions,
-    signingKey: c.env.INNGEST_SIGNING_KEY,
-  });
-
-  return handler(c.req.raw, c.env);
+const handler = serve({
+  client: inngest,
+  functions,
+  signingKey: c.env.INNGEST_SIGNING_KEY,
 });
 
+app.all("/api/inngest", (c) => {
+  return handler(c.req.raw, c.env);
+});
 app.route("/api/webhooks", clerkWebhookRoute);
 app.use(
   "*",

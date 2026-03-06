@@ -15,10 +15,11 @@ import clerkWebhookRoute from "./routes/clerkWebhook.route";
 
 app.all("/api/inngest", (c) => {
   const handler = inngestHandler(c.env);
+
   return handler({
     request: c.req.raw,
     env: c.env,
-  });
+  } as any);
 });
 
 app.route("/api/webhooks", clerkWebhookRoute);

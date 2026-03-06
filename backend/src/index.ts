@@ -10,9 +10,18 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
+
 //Middlewares
 import { cors } from "hono/cors";
+import { inngestHandler } from "./inngest/handler";
+import clerkWebhookRoute from "./routes/clerkWebhook.route";
 
+
+app.all("/api/inngest", (c) => {
+  return inngestHandler(c.req.raw, c.env);
+});
+
+app.route("/api/webhooks", clerkWebhookRoute);
 app.use(
   "*",
   cors({

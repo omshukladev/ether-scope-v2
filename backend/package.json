@@ -7,7 +7,11 @@
 		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
 	},
 	"dependencies": {
+		"@clerk/express": "^2.0.1",
 		"hono": "^4.12.3",
+		"inngest": "^3.52.6",
+		"jose": "^6.2.0",
+		"svix": "^1.86.0",
 		"uuid": "^13.0.0"
 	},
 	"devDependencies": {

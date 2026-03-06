@@ -10,7 +10,8 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 //Middlewares
 import { cors } from "hono/cors";
-import { inngestHandler } from "./inngest/handler";
+import { inngest } from "./inngest/client";
+import { functions } from "./inngest/functions";
 import clerkWebhookRoute from "./routes/clerkWebhook.route";
 
 // app.all("/api/inngest", (c) => {
@@ -22,10 +23,13 @@ import clerkWebhookRoute from "./routes/clerkWebhook.route";
 //   } as any);
 // });
 
-app.all("/api/inngest", async (c) => {
-  const handler = inngestHandler(c.env);
-  return handler(c.req.raw, c.env);
-});
+app.all(
+  "/api/inngest",
+  serve({
+    client: inngest,
+    functions,
+  }),
+);
 
 app.route("/api/webhooks", clerkWebhookRoute);
 app.use(

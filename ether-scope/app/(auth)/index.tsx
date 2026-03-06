@@ -146,7 +146,7 @@ export default function AuthScreen() {
         {/* HERO SECTION */}
         <View style={styles.heroContainer}>
           {/* LOGO WITH ANIMATIONS */}
-          <GlowingLogo size={280} />
+          <GlowingLogo size={220} />
 
           {/* TEXT CONTENT */}
           <View className="items-center mt-12 px-8">

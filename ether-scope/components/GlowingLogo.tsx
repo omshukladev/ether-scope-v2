@@ -16,7 +16,7 @@ interface GlowingLogoProps {
 
 export const GlowingLogo = ({ size = 280 }: GlowingLogoProps) => {
   const float = useSharedValue(0);
-  const glowOpacity = useSharedValue(0.15);
+  const glowOpacity = useSharedValue(0.08);
   const glowScale = useSharedValue(1);
   const rotation = useSharedValue(0);
 
@@ -31,11 +31,11 @@ export const GlowingLogo = ({ size = 280 }: GlowingLogoProps) => {
       true,
     );
 
-    // Glow pulsing animation
+    // Glow pulsing animation - more subtle
     glowOpacity.value = withRepeat(
       withSequence(
-        withTiming(0.25, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
         withTiming(0.15, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.08, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
       false,
@@ -43,7 +43,7 @@ export const GlowingLogo = ({ size = 280 }: GlowingLogoProps) => {
 
     glowScale.value = withRepeat(
       withSequence(
-        withTiming(1.15, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
         withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
@@ -74,12 +74,9 @@ export const GlowingLogo = ({ size = 280 }: GlowingLogoProps) => {
     transform: [{ scale: glowScale.value }],
   }));
 
-  const innerGlowStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value * 1.5,
-  }));
-
-  const containerSize = size + 40;
-  const glowSize = containerSize + 100;
+  const imageSize = size * 1.8; // Larger image
+  const containerSize = size * 1.5; // Container stays the same
+  const glowSize = containerSize * 1.3; // Glow stays the same
 
   return (
     <View
@@ -88,7 +85,7 @@ export const GlowingLogo = ({ size = 280 }: GlowingLogoProps) => {
         { width: containerSize, height: containerSize },
       ]}
     >
-      {/* Outer Glow */}
+      {/* Single Outer Glow */}
       <Animated.View
         style={[
           styles.glow,
@@ -98,19 +95,6 @@ export const GlowingLogo = ({ size = 280 }: GlowingLogoProps) => {
             borderRadius: glowSize / 2,
           },
           glowStyle,
-        ]}
-      />
-
-      {/* Middle Glow Layer */}
-      <Animated.View
-        style={[
-          styles.middleGlow,
-          {
-            width: containerSize + 60,
-            height: containerSize + 60,
-            borderRadius: (containerSize + 60) / 2,
-          },
-          innerGlowStyle,
         ]}
       />
 
@@ -126,23 +110,11 @@ export const GlowingLogo = ({ size = 280 }: GlowingLogoProps) => {
             },
           ]}
         >
-          {/* Inner Glow Ring */}
-          <View
-            style={[
-              styles.innerRing,
-              {
-                width: containerSize - 10,
-                height: containerSize - 10,
-                borderRadius: (containerSize - 10) / 2,
-              },
-            ]}
-          />
-
           <Image
             source={require("../assets/images/ether.png")}
             style={{
-              width: size,
-              height: size,
+              width: imageSize,
+              height: imageSize,
             }}
             contentFit="contain"
           />
@@ -161,10 +133,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     backgroundColor: "#3b82f6",
   },
-  middleGlow: {
-    position: "absolute",
-    backgroundColor: "#60a5fa",
-  },
   logoWrapper: {
     alignItems: "center",
     justifyContent: "center",
@@ -172,13 +140,8 @@ const styles = StyleSheet.create({
   logoBackground: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(59, 130, 246, 0.08)",
-    borderWidth: 1.5,
-    borderColor: "rgba(59, 130, 246, 0.3)",
-  },
-  innerRing: {
-    position: "absolute",
+    backgroundColor: "rgba(59, 130, 246, 0.05)",
     borderWidth: 1,
-    borderColor: "rgba(96, 165, 250, 0.2)",
+    borderColor: "rgba(59, 130, 246, 0.2)",
   },
 });

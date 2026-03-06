@@ -13,13 +13,18 @@ import { cors } from "hono/cors";
 import { inngestHandler } from "./inngest/handler";
 import clerkWebhookRoute from "./routes/clerkWebhook.route";
 
-app.all("/api/inngest", (c) => {
-  const handler = inngestHandler(c.env);
+// app.all("/api/inngest", (c) => {
+//   const handler = inngestHandler(c.env);
 
-  return handler({
-    request: c.req.raw,
-    env: c.env,
-  } as any);
+//   return handler({
+//     request: c.req.raw,
+//     env: c.env,
+//   } as any);
+// });
+
+app.all("/api/inngest", async (c) => {
+  const handler = inngestHandler(c.env);
+  return handler(c.req.raw, c.env);
 });
 
 app.route("/api/webhooks", clerkWebhookRoute);

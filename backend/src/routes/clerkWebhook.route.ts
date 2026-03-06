@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { Webhook } from "svix";
-import { inngest } from "../inngest/client";
+import { createInngest } from "../inngest/client";
 
 type Bindings = {
   DB: D1Database;
   CLERK_WEBHOOK_SECRET: string;
+  INNGEST_EVENT_KEY: string;
 };
 
 const router = new Hono<{ Bindings: Bindings }>();
@@ -15,7 +16,6 @@ router.post("/clerk", async (c) => {
   const headers = Object.fromEntries(c.req.raw.headers);
 
   const secret = c.env.CLERK_WEBHOOK_SECRET;
-
   const wh = new Webhook(secret);
 
   let event: any;
@@ -25,10 +25,14 @@ router.post("/clerk", async (c) => {
   } catch {
     return c.json({ error: "Invalid signature" }, 400);
   }
+ 
 
   if (event.type === "user.created") {
 
     const user = event.data;
+
+    // Create Inngest client using Cloudflare env
+    const inngest = createInngest(c.env.INNGEST_EVENT_KEY);
 
     await inngest.send({
       name: "clerk/user.created",

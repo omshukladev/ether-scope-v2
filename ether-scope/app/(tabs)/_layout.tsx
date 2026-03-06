@@ -1,9 +1,31 @@
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@clerk/expo";
 
 export default function TabsLayout() {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  // wait until Clerk loads session
+  if (!isLoaded) return null;
+
+  // block access if user not logged in
+  if (!isSignedIn) {
+    return <Redirect href="/(auth)" />;
+  }
+
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: "#3b82f6",
+        tabBarInactiveTintColor: "#6b7280",
+
+        tabBarStyle: {
+          backgroundColor: "#020617",
+          borderTopColor: "#111827",
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -13,6 +35,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="track"
         options={{
@@ -22,6 +45,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="history"
         options={{
@@ -31,6 +55,7 @@ export default function TabsLayout() {
           ),
         }}
       />
+
       <Tabs.Screen
         name="settings"
         options={{

@@ -1,4 +1,3 @@
-import { View } from "react-native";
 import { useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {

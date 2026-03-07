@@ -3,8 +3,9 @@ import { cors } from "hono/cors";
 import { serve } from "inngest/cloudflare";
 
 import { errorHandler } from "./utils/errorHandler";
-import { createInngest } from "./inngest/client";
+import { inngest } from "./inngest/client";
 import { functions } from "./inngest/functions";
+
 import clerkWebhookRoute from "./routes/clerkWebhook.route";
 import healthCheckRoute from "./routes/healtCheck.route";
 
@@ -17,7 +18,7 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-
+/* ---------------- CORS ---------------- */
 
 app.use(
   "*",
@@ -33,12 +34,9 @@ app.use(
   }),
 );
 
-
+/* ---------------- INNGEST ENDPOINT ---------------- */
 
 app.all("/api/inngest", (c) => {
-
-  const inngest = createInngest(c.env.INNGEST_EVENT_KEY);
-
   const handler = serve({
     client: inngest,
     functions,
@@ -49,23 +47,23 @@ app.all("/api/inngest", (c) => {
     request: c.req.raw,
     env: c.env,
   } as any);
-
 });
 
-
+/* ---------------- WEBHOOK ROUTES ---------------- */
 
 app.route("/api/webhooks", clerkWebhookRoute);
 
-
+/* ---------------- HEALTH CHECK ---------------- */
 
 app.route("/api", healthCheckRoute);
 
-
+/* ---------------- TEST ROUTE ---------------- */
 
 app.get("/message", (c) => {
   return c.text("Hello Hono!");
 });
 
+/* ---------------- ERROR HANDLER ---------------- */
 
 app.onError(errorHandler);
 

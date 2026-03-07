@@ -1,27 +1,33 @@
 import { inngest } from "../client";
 
+type Env = {
+  DB: D1Database;
+};
+
 export const syncUser = inngest.createFunction(
   { id: "sync-clerk-user" },
   { event: "clerk/user.created" },
-  async ({ event, step }) => {
+  async ({ event, step, ...ctx }: any) => {
     const user = event.data;
+    const env = ctx.env as Env;
 
-    await step.run("insert-user", {}, async ({ env }) => {
+    await step.run("insert-user-db", async () => {
       await env.DB.prepare(
         `
-          INSERT INTO users (id,name,email,profile_image,created_at)
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO NOTHING
-        `,
+        INSERT INTO users (id,name,email,profile_image,created_at)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO NOTHING
+      `,
       )
         .bind(
           user.id,
           `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim(),
           user.email ?? null,
           user.image_url ?? null,
-          Date.now(),
+          Math.floor(Date.now() / 1000),
         )
         .run();
     });
   },
 );
+

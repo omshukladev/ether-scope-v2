@@ -2,9 +2,15 @@ import { Hono } from "hono";
 import { Webhook } from "svix";
 import { createEventClient } from "../inngest/client";
 
-const router = new Hono();
+type Bindings = {
+  DB: D1Database;
+  CLERK_WEBHOOK_SECRET: string;
+  INNGEST_EVENT_KEY: string;
+};
 
-router.post("/clerk", async (c: any) => {
+const router = new Hono<{ Bindings: Bindings }>();
+
+router.post("/clerk", async (c) => {
   try {
     const payload = await c.req.text();
 
@@ -31,30 +37,62 @@ router.post("/clerk", async (c: any) => {
 
       const primaryEmail =
         user.email_addresses?.find(
-          (e: any) => e.id === user.primary_email_address_id
+          (e: any) => e.id === user.primary_email_address_id,
         )?.email_address ?? user.email_addresses?.[0]?.email_address;
 
-      console.log("Sending event to Inngest...");
+      // Insert user directly into DB
+      console.log("Inserting user into database...");
 
-      // Create client with event key
-      const inngest = createEventClient(c.env.INNGEST_EVENT_KEY);
+      try {
+        await c.env.DB.prepare(
+          `
+          INSERT INTO users (id, name, email, profile_image, created_at)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO NOTHING
+        `,
+        )
+          .bind(
+            user.id,
+            `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || null,
+            primaryEmail ?? null,
+            user.image_url ?? null,
+            Math.floor(Date.now() / 1000),
+          )
+          .run();
 
-      await inngest.send({
-        name: "clerk/user.created",
-        data: {
-          id: user.id,
-          first_name: user.first_name ?? null,
-          last_name: user.last_name ?? null,
-          email: primaryEmail ?? null,
-          image_url: user.image_url ?? null,
-        },
-      });
+        console.log("User inserted successfully");
+      } catch (dbError) {
+        console.error("Database insert failed:", dbError);
+        // Continue to send event to Inngest even if DB fails
+      }
 
-      console.log("Event sent successfully");
+      // Send event to Inngest for logging/observability
+      if (c.env.INNGEST_EVENT_KEY) {
+        try {
+          console.log("Sending event to Inngest...");
+
+          const inngest = createEventClient(c.env.INNGEST_EVENT_KEY);
+
+          await inngest.send({
+            name: "clerk/user.created",
+            data: {
+              id: user.id,
+              first_name: user.first_name ?? null,
+              last_name: user.last_name ?? null,
+              email: primaryEmail ?? null,
+              image_url: user.image_url ?? null,
+            },
+          });
+
+          console.log("Event sent successfully");
+        } catch (inngestError) {
+          console.error("Inngest send failed:", inngestError);
+          // Don't fail the webhook if Inngest fails
+        }
+      }
     }
 
     return c.json({ success: true });
-
   } catch (err) {
     console.error("Webhook error:", err);
 
@@ -63,7 +101,7 @@ router.post("/clerk", async (c: any) => {
         success: false,
         message: "Webhook crashed",
       },
-      500
+      500,
     );
   }
 });

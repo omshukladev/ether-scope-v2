@@ -7,10 +7,18 @@ type Env = {
 export const syncUser = inngest.createFunction(
   { id: "sync-clerk-user" },
   { event: "clerk/user.created" },
-  async ({ event, step }: any) => {
-    const user = event.data;
+  async (ctx: any) => {
+    console.log("Context keys:", Object.keys(ctx));
+    console.log("Has runEnv:", "runEnv" in ctx);
+    console.log("Has ctx:", "ctx" in ctx);
 
-    await step.run("insert-user-db", async ({ env }: { env: Env }) => {
+    const { event, step } = ctx;
+    const user = event.data;
+    const env = (ctx.runEnv || ctx.ctx?.env || ctx.env) as Env;
+
+    console.log("env available:", !!env);
+
+    await step.run("insert-user-db", async () => {
       await env.DB.prepare(
         `
         INSERT INTO users (id,name,email,profile_image,created_at)

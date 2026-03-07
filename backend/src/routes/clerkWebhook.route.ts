@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { Webhook } from "svix";
-import { inngest } from "../inngest/client";
+import { createEventClient } from "../inngest/client";
 
 const router = new Hono();
 
@@ -34,7 +34,10 @@ router.post("/clerk", async (c: any) => {
           (e: any) => e.id === user.primary_email_address_id
         )?.email_address ?? user.email_addresses?.[0]?.email_address;
 
-      console.log("Sending event to Inngest");
+      console.log("Sending event to Inngest...");
+
+      // Create client with event key
+      const inngest = createEventClient(c.env.INNGEST_EVENT_KEY);
 
       await inngest.send({
         name: "clerk/user.created",

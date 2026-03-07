@@ -43,10 +43,7 @@ app.all("/api/inngest", (c) => {
     signingKey: c.env.INNGEST_SIGNING_KEY,
   });
 
-  return handler({
-    request: c.req.raw,
-    env: c.env,
-  } as any);
+  return (handler as any)({ request: c.req.raw, env: c.env });
 });
 
 /* ---------------- WEBHOOK ROUTES ---------------- */

@@ -7,11 +7,10 @@ type Env = {
 export const syncUser = inngest.createFunction(
   { id: "sync-clerk-user" },
   { event: "clerk/user.created" },
-  async ({ event, step, ...ctx }: any) => {
+  async ({ event, step }: any) => {
     const user = event.data;
-    const env = ctx.env as Env;
 
-    await step.run("insert-user-db", async () => {
+    await step.run("insert-user-db", async ({ env }: { env: Env }) => {
       await env.DB.prepare(
         `
         INSERT INTO users (id,name,email,profile_image,created_at)
@@ -30,4 +29,3 @@ export const syncUser = inngest.createFunction(
     });
   },
 );
-

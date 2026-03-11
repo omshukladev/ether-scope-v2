@@ -2,7 +2,8 @@ import { verifyToken } from "@clerk/backend";
 import { apiError } from "../utils/apiError";
 
 export const authMiddleware = async (c: any, next: any) => {
-  const authHeader = c.req.header("authorization");
+  const authHeader =
+    c.req.header("authorization") || c.req.header("Authorization");
 
   if (!authHeader) {
     throw new apiError(401, "Missing Authorization header");

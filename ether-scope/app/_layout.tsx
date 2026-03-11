@@ -1,17 +1,41 @@
 import "../global.css";
 import { Stack } from "expo-router";
-import { ClerkProvider } from "@clerk/expo";
+import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import * as WebBrowser from "expo-web-browser";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { setClerkGetToken } from "@/lib/api";
+import { useEffect } from "react";
 
 WebBrowser.maybeCompleteAuthSession();
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
+const queryClient = new QueryClient();
+
+/* ---------------- APP PROVIDERS ---------------- */
+
+function AppProviders() {
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    setClerkGetToken(getToken);
+  }, [getToken]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Stack screenOptions={{ headerShown: false }} />
+    </QueryClientProvider>
+  );
+}
+
+/* ---------------- ROOT LAYOUT ---------------- */
+
 export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <AppProviders />
     </ClerkProvider>
   );
 }

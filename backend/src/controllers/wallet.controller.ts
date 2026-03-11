@@ -15,8 +15,8 @@ const walletActivity = asyncHandler(async (c: any) => {
 
   const transactions = await fetchWalletTransactions(c.env, wallet);
 
-  const userId = c.req.header("x-user-id");
-
+  const userId = c.get("userId");
+  
   if (!userId) {
     throw new apiError(401, "User not authenticated");
   }

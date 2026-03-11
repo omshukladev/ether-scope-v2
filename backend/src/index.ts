@@ -8,6 +8,7 @@ import { functions } from "./inngest/functions";
 
 import clerkWebhookRoute from "./routes/clerkWebhook.route";
 import healthCheckRoute from "./routes/healtCheck.route";
+import walletRoute from "./routes/wallet.route";
 
 type Bindings = {
   DB: D1Database;
@@ -50,9 +51,14 @@ app.all("/api/inngest", (c) => {
 
 app.route("/api/webhooks", clerkWebhookRoute);
 
+
 /* ---------------- HEALTH CHECK ---------------- */
 
 app.route("/api", healthCheckRoute);
+
+/* ---------------- WALLET ROUTES ---------------- */
+
+app.route("/api/wallet",walletRoute);
 
 /* ---------------- TEST ROUTE ---------------- */
 

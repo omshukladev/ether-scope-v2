@@ -1,9 +1,11 @@
 import { Tabs, Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
+import { useThemeMode } from "@/lib/themeContext";
 
 export default function TabsLayout() {
   const { isSignedIn, isLoaded } = useAuth();
+  const { darkMode } = useThemeMode();
 
   // wait until Clerk loads session
   if (!isLoaded) return null;
@@ -17,12 +19,13 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+
         tabBarActiveTintColor: "#3b82f6",
-        tabBarInactiveTintColor: "#6b7280",
+        tabBarInactiveTintColor: darkMode ? "#6b7280" : "#9ca3af",
 
         tabBarStyle: {
-          backgroundColor: "#020617",
-          borderTopColor: "#111827",
+          backgroundColor: darkMode ? "#020617" : "#ffffff",
+          borderTopColor: darkMode ? "#111827" : "#e5e7eb",
         },
       }}
     >

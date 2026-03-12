@@ -3,7 +3,7 @@ import { Stack } from "expo-router";
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import * as WebBrowser from "expo-web-browser";
-
+import { ThemeProvider, useThemeMode } from "@/lib/themeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setClerkGetToken } from "@/lib/api";
 import { useEffect } from "react";
@@ -18,6 +18,7 @@ const queryClient = new QueryClient();
 
 function AppProviders() {
   const { getToken } = useAuth();
+  const { darkMode } = useThemeMode();
 
   useEffect(() => {
     setClerkGetToken(getToken);
@@ -25,7 +26,14 @@ function AppProviders() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: darkMode ? "#000000" : "#ffffff",
+          },
+        }}
+      />
     </QueryClientProvider>
   );
 }
@@ -35,7 +43,9 @@ function AppProviders() {
 export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <AppProviders />
+      <ThemeProvider>
+        <AppProviders />
+      </ThemeProvider>
     </ClerkProvider>
   );
 }

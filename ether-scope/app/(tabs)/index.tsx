@@ -11,8 +11,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useWalletTransactions } from "@/hooks/useWallet";
+import { useThemeMode } from "@/lib/themeContext";
 
 export default function Home() {
+  const { darkMode } = useThemeMode();
+
   const [inputAddress, setInputAddress] = useState("");
   const [searchedAddress, setSearchedAddress] = useState("");
   const [selectedTx, setSelectedTx] = useState<any>(null);
@@ -27,10 +30,16 @@ export default function Home() {
   const transactions = data?.transactions || [];
 
   return (
-    <SafeAreaView className="flex-1 bg-black px-4">
+    <SafeAreaView
+      className={`flex-1 px-4 ${darkMode ? "bg-black" : "bg-white"}`}
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* TITLE */}
-        <Text className="text-3xl font-bold text-white mt-6">
+        <Text
+          className={`text-3xl font-bold mt-6 ${
+            darkMode ? "text-white" : "text-black"
+          }`}
+        >
           Wallet Explorer
         </Text>
 
@@ -39,8 +48,10 @@ export default function Home() {
           value={inputAddress}
           onChangeText={setInputAddress}
           placeholder="Enter wallet address..."
-          placeholderTextColor="#6B6B70"
-          className="mt-6 bg-[#1A1A1D] text-white p-4 rounded-2xl"
+          placeholderTextColor={darkMode ? "#6B6B70" : "#9CA3AF"}
+          className={`mt-6 p-4 rounded-2xl ${
+            darkMode ? "bg-[#1A1A1D] text-white" : "bg-gray-100 text-black"
+          }`}
         />
 
         {/* SEARCH BUTTON */}
@@ -75,10 +86,16 @@ export default function Home() {
                 <TouchableOpacity
                   key={`${tx.hash ?? "nohash"}-${index}`}
                   onPress={() => setSelectedTx(tx)}
-                  className="bg-[#1A1A1D] rounded-2xl p-5 mb-4"
+                  className={`rounded-2xl p-5 mb-4 ${
+                    darkMode ? "bg-[#1A1A1D]" : "bg-gray-100"
+                  }`}
                 >
                   <View className="flex-row justify-between items-center">
-                    <Text className="text-white font-semibold">
+                    <Text
+                      className={`font-semibold ${
+                        darkMode ? "text-white" : "text-black"
+                      }`}
+                    >
                       Transaction
                     </Text>
 
@@ -97,15 +114,27 @@ export default function Home() {
                     </View>
                   </View>
 
-                  <Text className="text-gray-300 mt-2">
+                  <Text
+                    className={`mt-2 ${
+                      darkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
                     {tx.hash?.slice(0, 18)}...
                   </Text>
 
-                  <Text className="text-gray-400 mt-2">
+                  <Text
+                    className={`mt-2 ${
+                      darkMode ? "text-gray-400" : "text-gray-600"
+                    }`}
+                  >
                     {tx.amount?.toLocaleString?.()} {tx.symbol ?? ""}
                   </Text>
 
-                  <Text className="text-gray-500">
+                  <Text
+                    className={`${
+                      darkMode ? "text-gray-500" : "text-gray-500"
+                    }`}
+                  >
                     {tx.date ? new Date(tx.date).toLocaleString() : ""}
                   </Text>
                 </TouchableOpacity>
@@ -118,7 +147,11 @@ export default function Home() {
       {/* TRANSACTION MODAL */}
       <Modal visible={!!selectedTx} animationType="slide" transparent>
         <View className="flex-1 bg-black/70 justify-center px-6">
-          <View className="bg-[#1A1A1D] rounded-3xl p-6">
+          <View
+            className={`rounded-3xl p-6 ${
+              darkMode ? "bg-[#1A1A1D]" : "bg-white"
+            }`}
+          >
             <View className="flex-row justify-end">
               <Pressable onPress={() => setSelectedTx(null)}>
                 <Text className="text-blue-500 text-lg font-bold">✕</Text>
@@ -127,26 +160,46 @@ export default function Home() {
 
             {selectedTx && (
               <>
-                <Text className="text-2xl font-bold text-white mb-4">
+                <Text
+                  className={`text-2xl font-bold mb-4 ${
+                    darkMode ? "text-white" : "text-black"
+                  }`}
+                >
                   Transaction Details
                 </Text>
 
                 <Text className="text-gray-400">Hash</Text>
-                <Text className="text-white mb-3">{selectedTx.hash}</Text>
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
+                  {selectedTx.hash}
+                </Text>
 
                 <Text className="text-gray-400">From</Text>
-                <Text className="text-white mb-3">{selectedTx.from}</Text>
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
+                  {selectedTx.from}
+                </Text>
 
                 <Text className="text-gray-400">To</Text>
-                <Text className="text-white mb-3">{selectedTx.to}</Text>
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
+                  {selectedTx.to}
+                </Text>
 
                 <Text className="text-gray-400">Amount</Text>
-                <Text className="text-white mb-3">
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
                   {selectedTx.amount?.toLocaleString?.()} {selectedTx.symbol}
                 </Text>
 
                 <Text className="text-gray-400">Date</Text>
-                <Text className="text-white mb-3">
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
                   {selectedTx.date
                     ? new Date(selectedTx.date).toLocaleString()
                     : ""}

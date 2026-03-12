@@ -20,6 +20,7 @@ export const authMiddleware = async (c: any, next: any) => {
 
     await next();
   } catch (error) {
+    console.error("TOKEN VERIFY ERROR:", error);
     throw new apiError(401, "Invalid token");
   }
 };

@@ -6,3 +6,6 @@ CREATE TABLE IF NOT EXISTS wallet_history (
 
   FOREIGN KEY(user_id) REFERENCES users(id)
 );
+
+CREATE UNIQUE INDEX wallet_user_address_unique
+ON wallet_history(user_id, wallet_address);

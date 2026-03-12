@@ -21,6 +21,6 @@ export const fetchWalletTransactions = async (address: string) => {
 /* ---------------- FETCH HISTORY ---------------- */
 
 export const fetchWalletHistory = async () => {
-  const res = await api.get("/history");
+  const res = await api.get("/wallet/history");
   return res.data.data;
 };

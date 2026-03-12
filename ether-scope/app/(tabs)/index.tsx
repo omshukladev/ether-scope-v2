@@ -27,14 +27,19 @@ export default function Home() {
   const transactions = data?.transactions || [];
 
   const handleSearch = () => {
-    if (!inputAddress.trim()) return;
-    setSearchedAddress(inputAddress.trim());
+    const addr = inputAddress.trim();
+
+    if (!addr) return;
+
+    setSearchedAddress(addr); // trigger API
+    setInputAddress(""); // clear search bar
   };
 
   return (
-    <SafeAreaView className={`flex-1 px-4 ${darkMode ? "bg-black" : "bg-white"}`}>
+    <SafeAreaView
+      className={`flex-1 px-4 ${darkMode ? "bg-black" : "bg-white"}`}
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
-
         {/* HEADER */}
         <Text
           className={`text-3xl font-bold mt-6 ${
@@ -90,7 +95,6 @@ export default function Home() {
         {/* TRANSACTIONS */}
         {!isLoading && transactions.length > 0 && (
           <View className="mt-10">
-
             {/* SECTION HEADER */}
             <View className="flex-row justify-between items-center mb-4">
               <Text
@@ -109,7 +113,6 @@ export default function Home() {
             </View>
 
             {transactions.map((tx: any, index: number) => {
-
               const isReceived =
                 tx.to?.toLowerCase() === searchedAddress?.toLowerCase();
 
@@ -129,10 +132,8 @@ export default function Home() {
                 >
                   {/* TOP ROW */}
                   <View className="flex-row items-center justify-between">
-
                     {/* LEFT SIDE */}
                     <View className="flex-row items-center gap-3">
-
                       {/* TOKEN ICON */}
                       <TokenIcon symbol={tx.symbol} />
 
@@ -164,9 +165,7 @@ export default function Home() {
 
                   {/* FOOTER */}
                   <View className="flex-row justify-between mt-3">
-
                     <View className="flex-row gap-2">
-
                       {/* SENT / RECEIVED */}
                       <View
                         className={`px-2 py-1 rounded-full ${
@@ -199,9 +198,7 @@ export default function Home() {
                     </View>
 
                     <Text className="text-gray-500 text-xs">
-                      {tx.date
-                        ? new Date(tx.date).toLocaleString()
-                        : ""}
+                      {tx.date ? new Date(tx.date).toLocaleString() : ""}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -213,9 +210,7 @@ export default function Home() {
 
       {/* TRANSACTION DETAILS MODAL */}
       <Modal visible={!!selectedTx} animationType="slide" transparent>
-
         <View className="flex-1 bg-black/70 justify-center px-6">
-
           <View
             className={`rounded-3xl p-6 ${
               darkMode ? "bg-[#1A1A1D]" : "bg-white"
@@ -238,27 +233,37 @@ export default function Home() {
                 </Text>
 
                 <Text className="text-gray-400">Hash</Text>
-                <Text className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}>
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
                   {selectedTx.hash}
                 </Text>
 
                 <Text className="text-gray-400">From</Text>
-                <Text className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}>
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
                   {selectedTx.from}
                 </Text>
 
                 <Text className="text-gray-400">To</Text>
-                <Text className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}>
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
                   {selectedTx.to}
                 </Text>
 
                 <Text className="text-gray-400">Amount</Text>
-                <Text className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}>
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
                   {selectedTx.amount?.toLocaleString?.()} {selectedTx.symbol}
                 </Text>
 
                 <Text className="text-gray-400">Date</Text>
-                <Text className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}>
+                <Text
+                  className={`mb-3 ${darkMode ? "text-white" : "text-black"}`}
+                >
                   {selectedTx.date
                     ? new Date(selectedTx.date).toLocaleString()
                     : ""}
@@ -277,9 +282,7 @@ export default function Home() {
               </>
             )}
           </View>
-
         </View>
-
       </Modal>
     </SafeAreaView>
   );

@@ -16,17 +16,18 @@ const walletActivity = asyncHandler(async (c: any) => {
   const transactions = await fetchWalletTransactions(c.env, wallet);
 
   const userId = c.get("userId");
-  
+
   if (!userId) {
     throw new apiError(401, "User not authenticated");
   }
 
   await c.env.DB.prepare(
     `
-    INSERT INTO wallet_history
-    (user_id, wallet_address, created_at)
-    VALUES (?, ?, ?)
-  `,
+INSERT INTO wallet_history (user_id, wallet_address, created_at)
+VALUES (?, ?, ?)
+ON CONFLICT(user_id, wallet_address)
+DO UPDATE SET created_at = excluded.created_at
+`,
   )
     .bind(userId, wallet.toLowerCase(), Math.floor(Date.now() / 1000))
     .run();

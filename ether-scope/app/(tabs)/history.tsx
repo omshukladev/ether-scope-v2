@@ -9,6 +9,7 @@ import TokenIcon from "@/components/TokenIcon";
 
 export default function History() {
   const { darkMode } = useThemeMode();
+
   const { data = [], isLoading } = useWalletHistory();
 
   const copyAddress = async (addr: string) => {
@@ -32,7 +33,6 @@ export default function History() {
     <SafeAreaView
       className={`flex-1 px-4 ${darkMode ? "bg-black" : "bg-white"}`}
     >
-      {/* HEADER */}
       <Text
         className={`text-3xl font-bold mt-6 ${
           darkMode ? "text-white" : "text-black"
@@ -45,7 +45,7 @@ export default function History() {
         Manage your past wallet searches
       </Text>
 
-      <ScrollView className="mt-6" showsVerticalScrollIndicator={false}>
+      <ScrollView className="mt-6">
         {isLoading && <Text className="text-gray-400">Loading history...</Text>}
 
         {data.map((item: any, index: number) => (
@@ -57,13 +57,10 @@ export default function History() {
                 : "bg-white border-gray-200"
             }`}
           >
-            {/* TOP ROW */}
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
-                {/* ICON */}
                 <TokenIcon symbol="ETH" />
 
-                {/* ADDRESS */}
                 <View>
                   <Text
                     className={`font-semibold ${
@@ -77,7 +74,6 @@ export default function History() {
                 </View>
               </View>
 
-              {/* COPY */}
               <Pressable
                 onPress={() => copyAddress(item.wallet_address)}
                 className="px-3 py-1 rounded-lg bg-blue-500/20"
@@ -88,7 +84,6 @@ export default function History() {
               </Pressable>
             </View>
 
-            {/* FOOTER */}
             <View className="flex-row justify-between mt-3">
               <Text className="text-gray-500 text-xs">
                 {timeAgo(item.created_at)}

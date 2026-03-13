@@ -22,17 +22,36 @@ export default function Home() {
   const [searchedAddress, setSearchedAddress] = useState("");
   const [selectedTx, setSelectedTx] = useState<any>(null);
 
-  const { data, isLoading, error } = useWalletTransactions(searchedAddress);
+  const { data, isLoading, error, refetch } =
+    useWalletTransactions(searchedAddress);
 
-  const transactions = data?.transactions || [];
+  const transactions = data?.transactions ?? [];
 
   const handleSearch = () => {
     const addr = inputAddress.trim();
 
     if (!addr) return;
 
-    setSearchedAddress(addr); // trigger API
-    setInputAddress(""); // clear search bar
+    if (addr.toLowerCase() === searchedAddress.toLowerCase()) {
+      refetch();
+    } else {
+      setSearchedAddress(addr);
+    }
+
+    setInputAddress("");
+  };
+
+  /* -------- TIME AGO FUNCTION -------- */
+
+  const timeAgo = (dateString: string) => {
+    const timestamp = new Date(dateString).getTime();
+    const diff = Math.floor((Date.now() - timestamp) / 1000);
+
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+
+    return `${Math.floor(diff / 86400)} day ago`;
   };
 
   return (
@@ -132,9 +151,7 @@ export default function Home() {
                 >
                   {/* TOP ROW */}
                   <View className="flex-row items-center justify-between">
-                    {/* LEFT SIDE */}
                     <View className="flex-row items-center gap-3">
-                      {/* TOKEN ICON */}
                       <TokenIcon symbol={tx.symbol} />
 
                       <View>
@@ -152,7 +169,6 @@ export default function Home() {
                       </View>
                     </View>
 
-                    {/* AMOUNT */}
                     <Text
                       className={`font-semibold ${
                         isReceived ? "text-green-400" : "text-red-400"
@@ -166,15 +182,15 @@ export default function Home() {
                   {/* FOOTER */}
                   <View className="flex-row justify-between mt-3">
                     <View className="flex-row gap-2">
-                      {/* SENT / RECEIVED */}
+                      {/* RECEIVED / SENT */}
                       <View
                         className={`px-2 py-1 rounded-full ${
-                          isReceived ? "bg-green-500/20" : "bg-red-500/20"
+                          isReceived ? "bg-blue-500/20" : "bg-orange-500/20"
                         }`}
                       >
                         <Text
                           className={`text-xs font-semibold ${
-                            isReceived ? "text-green-400" : "text-red-400"
+                            isReceived ? "text-blue-400" : "text-orange-400"
                           }`}
                         >
                           {directionLabel}
@@ -197,8 +213,9 @@ export default function Home() {
                       </View>
                     </View>
 
+                    {/* TIME AGO */}
                     <Text className="text-gray-500 text-xs">
-                      {tx.date ? new Date(tx.date).toLocaleString() : ""}
+                      {tx.date ? timeAgo(tx.date) : ""}
                     </Text>
                   </View>
                 </TouchableOpacity>

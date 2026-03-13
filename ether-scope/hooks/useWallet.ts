@@ -11,15 +11,18 @@ export const useWalletTransactions = (address: string) => {
 
   return useQuery({
     queryKey: ["wallet", address],
+
     queryFn: async () => {
       const data = await fetchWalletTransactions(address);
 
+      // refresh history after every search
       queryClient.invalidateQueries({
         queryKey: ["wallet-history"],
       });
 
       return data;
     },
+
     enabled: !!address,
     retry: 2,
   });

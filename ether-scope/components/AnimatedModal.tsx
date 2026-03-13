@@ -8,7 +8,15 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-export default function AnimatedModal({ children }: any) {
+interface AnimatedModalProps {
+  children: React.ReactNode;
+  darkMode?: boolean;
+}
+
+export default function AnimatedModal({
+  children,
+  darkMode = true,
+}: AnimatedModalProps) {
   const scale = useSharedValue(0.92);
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(16);
@@ -38,19 +46,32 @@ export default function AnimatedModal({ children }: any) {
 
       <Animated.View style={[styles.modalContainer, modalStyle]}>
         <LinearGradient
-          colors={[
-            "rgba(103, 131, 255, 0.72)",
-            "rgba(171, 188, 255, 0.5)",
-            "rgba(155, 255, 243, 0.55)",
-          ]}
+          colors={
+            darkMode
+              ? [
+                  "rgba(103, 131, 255, 0.72)",
+                  "rgba(171, 188, 255, 0.5)",
+                  "rgba(155, 255, 243, 0.55)",
+                ]
+              : [
+                  "rgba(77, 126, 255, 0.64)",
+                  "rgba(154, 182, 255, 0.46)",
+                  "rgba(140, 236, 255, 0.44)",
+                ]
+          }
           start={{ x: 0, y: 0.1 }}
           end={{ x: 1, y: 0.9 }}
           style={styles.modalBorder}
         >
-          <View style={styles.panel}>
+          <View
+            style={[
+              styles.panel,
+              darkMode ? styles.panelDark : styles.panelLight,
+            ]}
+          >
             <BlurView
               intensity={42}
-              tint="dark"
+              tint={darkMode ? "dark" : "light"}
               style={StyleSheet.absoluteFill}
             />
             <View style={styles.content}>{children}</View>
@@ -104,9 +125,17 @@ const styles = StyleSheet.create({
   panel: {
     borderRadius: 28,
     overflow: "hidden",
-    backgroundColor: "rgba(11, 13, 22, 0.9)",
     borderWidth: 1,
+  },
+
+  panelDark: {
+    backgroundColor: "rgba(11, 13, 22, 0.9)",
     borderColor: "rgba(150, 170, 255, 0.22)",
+  },
+
+  panelLight: {
+    backgroundColor: "rgba(246, 250, 255, 0.88)",
+    borderColor: "rgba(104, 142, 220, 0.22)",
   },
 
   content: {

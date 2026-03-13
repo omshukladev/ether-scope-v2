@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Clipboard from "expo-clipboard";
 
@@ -45,7 +45,7 @@ export default function History() {
       <DarkVeilBackground />
 
       <SafeAreaView
-        className={`flex-1 px-4 ${darkMode ? "bg-black" : "bg-white"}`}
+        className={`flex-1 px-4 ${darkMode ? "bg-transparent" : "bg-white"}`}
       >
         {/* HEADER */}
         <Text
@@ -79,10 +79,9 @@ export default function History() {
               <HistoryCardMotion key={historyKey} index={index}>
                 <View
                   className={`rounded-[18px] px-5 py-4 border ${
-                    darkMode
-                      ? "bg-[#11141C] border-[#2D3F5A]"
-                      : "bg-white border-gray-200"
+                    darkMode ? "" : "bg-white border-gray-200"
                   }`}
+                  style={darkMode ? styles.darkCard : undefined}
                 >
                   {/* TOP ROW */}
                   <View className="flex-row items-center justify-between">
@@ -133,3 +132,14 @@ export default function History() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  darkCard: {
+    backgroundColor: "rgba(11, 16, 30, 0.58)",
+    borderColor: "rgba(111, 162, 232, 0.3)",
+    shadowColor: "#0A4AA5",
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+  },
+});

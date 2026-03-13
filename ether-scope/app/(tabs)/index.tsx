@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Modal,
+  StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -15,7 +16,7 @@ import { useWalletTransactions } from "@/hooks/useWallet";
 import { useThemeMode } from "@/lib/themeContext";
 import TokenIcon from "@/components/TokenIcon";
 
-import { AnimatedCard } from "@/components/AnimatedCard";
+import HistoryCardMotion from "@/components/HistoryCardMotion";
 import NeonBadge from "@/components/NeonBadge";
 import DarkVeilBackground from "@/components/DarkVeilBackground";
 import AnimatedModal from "@/components/AnimatedModal";
@@ -26,6 +27,7 @@ export default function Home() {
   const [inputAddress, setInputAddress] = useState("");
   const [searchedAddress, setSearchedAddress] = useState("");
   const [selectedTx, setSelectedTx] = useState<any>(null);
+  const [scanPressed, setScanPressed] = useState(false);
 
   const { data, isLoading, error, refetch } =
     useWalletTransactions(searchedAddress);
@@ -62,9 +64,12 @@ export default function Home() {
       <DarkVeilBackground />
 
       <SafeAreaView
-        className={`flex-1 px-4 ${darkMode ? "bg-black" : "bg-white"}`}
+        className={`flex-1 px-4 ${darkMode ? "bg-transparent" : "bg-white"}`}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 110 }}
+        >
           {/* HEADER */}
           <Text
             className={`text-3xl font-bold mt-6 ${
@@ -96,7 +101,11 @@ export default function Home() {
           {/* SEARCH BUTTON */}
           <Pressable
             onPress={handleSearch}
-            className="bg-blue-500 mt-4 py-4 rounded-2xl items-center"
+            onPressIn={() => setScanPressed(true)}
+            onPressOut={() => setScanPressed(false)}
+            className="bg-blue-500 mt-4 py-4 rounded-2xl items-center w-full"
+            style={[styles.scanButton, scanPressed && styles.scanButtonPressed]}
+            android_ripple={{ color: "rgba(255,255,255,0.12)", borderless: false }}
           >
             <Text className="text-white font-semibold text-base">
               Scan Network
@@ -142,14 +151,15 @@ export default function Home() {
                 const directionLabel = isReceived ? "RECEIVED" : "SENT";
 
                 return (
-                  <AnimatedCard key={`${tx.hash}-${index}`} index={index}>
+                  <HistoryCardMotion key={`${tx.hash}-${index}`} index={index}>
                     <TouchableOpacity
                       onPress={() => setSelectedTx(tx)}
-                      className={`rounded-2xl p-5 mb-4 border ${
+                      className={`rounded-[18px] px-5 py-4 border ${
                         darkMode
-                          ? "bg-[#151518] border-[#2A2A2E]"
+                          ? ""
                           : "bg-white border-gray-200"
                       }`}
+                      style={darkMode ? styles.darkCard : undefined}
                     >
                       {/* TOP ROW */}
                       <View className="flex-row items-center justify-between">
@@ -182,7 +192,7 @@ export default function Home() {
                       </View>
 
                       {/* FOOTER */}
-                      <View className="flex-row justify-between mt-3">
+                      <View className="flex-row justify-between mt-4">
                         <View className="flex-row gap-2">
                           <NeonBadge
                             label={directionLabel}
@@ -195,12 +205,12 @@ export default function Home() {
                           />
                         </View>
 
-                        <Text className="text-gray-500 text-xs">
+                        <Text className="text-gray-500 text-xs tracking-wide">
                           {tx.date ? timeAgo(tx.date) : ""}
                         </Text>
                       </View>
                     </TouchableOpacity>
-                  </AnimatedCard>
+                  </HistoryCardMotion>
                 );
               })}
             </View>
@@ -211,9 +221,13 @@ export default function Home() {
         <Modal visible={!!selectedTx} transparent animationType="none">
           <View
             className="flex-1 justify-center px-6"
-            style={{ backgroundColor: "rgba(4, 8, 20, 0.58)" }}
+            style={{
+              backgroundColor: darkMode
+                ? "rgba(4, 8, 20, 0.58)"
+                : "rgba(238, 244, 255, 0.56)",
+            }}
           >
-            <AnimatedModal>
+            <AnimatedModal darkMode={darkMode}>
               <View className="rounded-3xl">
                 <View className="flex-row justify-end">
                   <Pressable onPress={() => setSelectedTx(null)}>
@@ -289,3 +303,26 @@ export default function Home() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  scanButton: {
+    shadowColor: "#3b82f6",
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    transform: [{ scale: 1 }],
+  },
+  scanButtonPressed: {
+    opacity: 0.88,
+    shadowOpacity: 0.14,
+    transform: [{ scale: 0.985 }],
+  },
+  darkCard: {
+    backgroundColor: "rgba(11, 16, 30, 0.58)",
+    borderColor: "rgba(111, 162, 232, 0.3)",
+    shadowColor: "#0A4AA5",
+    shadowOpacity: 0.16,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+  },
+});

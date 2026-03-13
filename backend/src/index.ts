@@ -9,6 +9,7 @@ import { functions } from "./inngest/functions";
 import clerkWebhookRoute from "./routes/clerkWebhook.route";
 import healthCheckRoute from "./routes/healtCheck.route";
 import walletRoute from "./routes/wallet.route";
+import trackingRoute from "./routes/tracking.route";
 
 type Bindings = {
   DB: D1Database;
@@ -59,6 +60,10 @@ app.route("/api", healthCheckRoute);
 /* ---------------- WALLET ROUTES ---------------- */
 
 app.route("/api/wallet",walletRoute);
+
+/* ---------------- TRACKING ROUTES ---------------- */
+
+app.route("/api/tracking", trackingRoute);
 
 /* ---------------- TEST ROUTE ---------------- */
 

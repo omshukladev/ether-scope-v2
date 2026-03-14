@@ -11,25 +11,23 @@ import * as SplashScreen from "expo-splash-screen";
 import Splash from "./splash";
 
 WebBrowser.maybeCompleteAuthSession();
-
-/* ---------------- KEEP NATIVE SPLASH VISIBLE ---------------- */
-
 SplashScreen.preventAutoHideAsync();
-
-/* ---------------- CONFIG ---------------- */
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const queryClient = new QueryClient();
 
-/* ---------------- APP PROVIDERS ---------------- */
-
 function AppProviders() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded } = useAuth();
   const { darkMode } = useThemeMode();
 
   useEffect(() => {
+    if (!isLoaded) return;
     setClerkGetToken(getToken);
-  }, [getToken]);
+  }, [getToken, isLoaded]);
+
+  if (!isLoaded) {
+    return null;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -45,20 +43,14 @@ function AppProviders() {
   );
 }
 
-/* ---------------- ROOT LAYOUT ---------------- */
-
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     async function prepare() {
-      try {
-        // give time for splash animation
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-      } finally {
-        setReady(true);
-        await SplashScreen.hideAsync();
-      }
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      setReady(true);
+      await SplashScreen.hideAsync();
     }
 
     prepare();

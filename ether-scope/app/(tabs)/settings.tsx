@@ -7,7 +7,10 @@ import { useThemeMode } from "@/lib/themeContext";
 
 import { getNotifications, setNotifications } from "@/lib/settingsStore";
 
-import { requestNotificationPermission } from "@/lib/notifications";
+import {
+  isNotificationFeatureAvailable,
+  requestNotificationPermission,
+} from "@/lib/notifications";
 
 export default function Settings() {
   const { user } = useUser();
@@ -16,6 +19,7 @@ export default function Settings() {
   const { darkMode, toggleTheme } = useThemeMode();
 
   const [notifications, setNotif] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState("");
 
   /* ---------------- LOAD NOTIFICATION SETTING ---------------- */
 
@@ -33,14 +37,22 @@ export default function Settings() {
     const newValue = !notifications;
 
     if (newValue) {
-      const granted = await requestNotificationPermission();
+      const canRequestPermission = isNotificationFeatureAvailable();
+      const granted = canRequestPermission
+        ? await requestNotificationPermission()
+        : false;
 
-      if (!granted) {
-        alert("Notifications permission denied");
-        return;
-      }
+      setNotif(granted);
+      await setNotifications(granted);
+      setNotificationStatus(
+        granted
+          ? ""
+          : "Notifications are off. Enable OS permission (or use Android dev build).",
+      );
+      return;
     }
 
+    setNotificationStatus("");
     setNotif(newValue);
     await setNotifications(newValue);
   };
@@ -121,6 +133,12 @@ export default function Settings() {
 
           <Switch value={notifications} onValueChange={toggleNotifications} />
         </View>
+
+        {!!notificationStatus && (
+          <Text className="text-xs text-gray-400 mt-3">
+            {notificationStatus}
+          </Text>
+        )}
       </View>
 
       {/* LOGOUT */}

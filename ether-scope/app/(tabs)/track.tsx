@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Notifications from "expo-notifications";
 
 import DarkVeilBackground from "@/components/DarkVeilBackground";
 import NeonBadge from "@/components/NeonBadge";
@@ -15,26 +15,21 @@ import {
   useTrackedWallets,
 } from "@/hooks/useTracking";
 
+import {
+  configureNotificationHandler,
+  scheduleInfoNotification,
+  scheduleWalletNotification,
+} from "@/lib/notifications";
+import { getNotifications } from "@/lib/settingsStore";
 import { useThemeMode } from "@/lib/themeContext";
 import { fetchWalletTransactions } from "@/services/wallet";
-
-/* ---------- REQUIRED FOR FOREGROUND NOTIFICATIONS ---------- */
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 export default function Track() {
   const { darkMode } = useThemeMode();
   const [input, setInput] = useState("");
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-  const lastSeenTx = useRef<Record<string, string>>({});
+  const lastSeenEventIds = useRef<Record<string, string[]>>({});
 
   const { data, isLoading } = useTrackedWallets();
   const addWallet = useAddTrackedWallet();
@@ -44,61 +39,107 @@ export default function Track() {
 
   /* ---------- ADD WALLET ---------- */
 
-  const handleAddWallet = () => {
+  const handleAddWallet = async () => {
     if (!input) return;
 
-    addWallet.mutate(input.trim());
+    const address = input.trim().toLowerCase();
+
+    try {
+      await addWallet.mutateAsync(address);
+
+      if (notificationsEnabled) {
+        await scheduleInfoNotification(
+          "EtherScope",
+          `Tracking enabled for ${address.slice(0, 6)}...${address.slice(-4)}`,
+        );
+      }
+    } catch (err) {
+      console.log("Add wallet error:", err);
+    }
+
     setInput("");
   };
 
   /* ---------- SEND NOTIFICATION ---------- */
 
-  const sendNotification = async (wallet: string, tx: any) => {
-    const direction = tx.type === "incoming" ? "Received" : "Sent";
-    const shortWallet = `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+  useEffect(() => {
+    configureNotificationHandler();
+  }, []);
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "EtherScope",
-        body: `${shortWallet} ${direction} ${tx.amount} ${tx.symbol}`,
-      },
-      trigger: null,
-    });
-  };
+  useFocusEffect(
+    React.useCallback(() => {
+      let alive = true;
+
+      const loadNotificationState = async () => {
+        const enabled = await getNotifications();
+
+        if (alive) {
+          setNotificationsEnabled(enabled);
+        }
+      };
+
+      loadNotificationState();
+
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
 
   /* ---------- POLLING ---------- */
 
   useEffect(() => {
     if (wallets.length === 0) return;
 
+    const buildEventId = (tx: any) => {
+      return [
+        tx.hash ?? "",
+        tx.from ?? "",
+        tx.to ?? "",
+        tx.symbol ?? "",
+        tx.amount ?? "",
+        tx.date ?? "",
+      ].join("|");
+    };
+
     const interval = setInterval(async () => {
       for (const wallet of wallets) {
         try {
           const data = await fetchWalletTransactions(wallet.wallet_address);
-          const latest = data.transactions?.[0];
+          const transactions = data.transactions ?? [];
 
-          if (!latest) continue;
+          if (transactions.length === 0) continue;
 
-          const lastHash = lastSeenTx.current[wallet.wallet_address];
+          const currentIds = transactions.map(buildEventId);
+          const previousIds = lastSeenEventIds.current[wallet.wallet_address];
 
-          if (!lastHash) {
-            lastSeenTx.current[wallet.wallet_address] = latest.hash;
+          // First observation seeds cache; no backfilled notifications.
+          if (!previousIds) {
+            lastSeenEventIds.current[wallet.wallet_address] = currentIds;
             continue;
           }
 
-          if (lastHash !== latest.hash) {
-            lastSeenTx.current[wallet.wallet_address] = latest.hash;
+          const previousSet = new Set(previousIds);
+          const newTransactions = transactions.filter(
+            (tx: any) => !previousSet.has(buildEventId(tx)),
+          );
 
-            await sendNotification(wallet.wallet_address, latest);
+          lastSeenEventIds.current[wallet.wallet_address] = currentIds;
+
+          if (newTransactions.length > 0 && notificationsEnabled) {
+            // Send oldest->newest to keep notification order natural.
+            for (const tx of [...newTransactions].reverse()) {
+              await scheduleWalletNotification(wallet.wallet_address, tx);
+            }
           }
         } catch (err) {
           console.log("Polling error:", err);
         }
       }
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [wallets]);
+  }, [wallets, notificationsEnabled]);
 
   /* ---------- UI ---------- */
 

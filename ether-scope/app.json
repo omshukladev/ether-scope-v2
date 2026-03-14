@@ -1,26 +1,22 @@
 {
   "expo": {
-    "name": "ether-scope",
+    "name": "EtherScope",
     "slug": "ether-scope",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "etherscope",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "icon": "./assets/images/icon.png",
-
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "cover",
       "backgroundColor": "#020617"
     },
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.omshukla.ether-scope"
     },
-
     "android": {
       "package": "com.omshukla.etherscope",
       "edgeToEdgeEnabled": true,
@@ -30,13 +26,11 @@
         "backgroundColor": "#020617"
       }
     },
-
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-
     "plugins": [
       "expo-router",
       "expo-secure-store",
@@ -51,10 +45,15 @@
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8e2b3020-3456-4f0c-90d8-768b66b939e8"
+      }
     }
   }
 }

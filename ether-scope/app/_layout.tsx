@@ -6,12 +6,9 @@ import * as WebBrowser from "expo-web-browser";
 import { ThemeProvider, useThemeMode } from "@/lib/themeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setClerkGetToken } from "@/lib/api";
-import { useEffect, useState } from "react";
-import * as SplashScreen from "expo-splash-screen";
-import Splash from "./splash";
+import { useEffect } from "react";
 
 WebBrowser.maybeCompleteAuthSession();
-SplashScreen.preventAutoHideAsync();
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 const queryClient = new QueryClient();
@@ -24,10 +21,6 @@ function AppProviders() {
     if (!isLoaded) return;
     setClerkGetToken(getToken);
   }, [getToken, isLoaded]);
-
-  if (!isLoaded) {
-    return null;
-  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -44,22 +37,6 @@ function AppProviders() {
 }
 
 export default function RootLayout() {
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    async function prepare() {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      setReady(true);
-      await SplashScreen.hideAsync();
-    }
-
-    prepare();
-  }, []);
-
-  if (!ready) {
-    return <Splash />;
-  }
-
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ThemeProvider>
